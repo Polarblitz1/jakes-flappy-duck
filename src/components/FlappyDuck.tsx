@@ -91,14 +91,12 @@ export default function FlappyDuck() {
       const pipe = "hsl(110 65% 35%)";
       const dark = "hsl(110 70% 25%)";
       const light = "hsl(110 55% 50%)";
-      // top
       ctx.fillStyle = pipe;
       ctx.fillRect(x, 0, PIPE_W, topH);
       ctx.fillStyle = light;
       ctx.fillRect(x + 6, 0, 6, topH);
       ctx.fillStyle = dark;
       ctx.fillRect(x + PIPE_W - 8, 0, 8, topH);
-      // top cap
       ctx.fillStyle = pipe;
       ctx.fillRect(x - 4, topH - 22, PIPE_W + 8, 22);
       ctx.fillStyle = light;
@@ -109,7 +107,6 @@ export default function FlappyDuck() {
       ctx.fillRect(x - 4, topH - 22, PIPE_W + 8, 3);
       ctx.fillRect(x - 4, topH - 4, PIPE_W + 8, 4);
 
-      // bottom
       const by = topH + GAP;
       ctx.fillStyle = pipe;
       ctx.fillRect(x, by, PIPE_W, H - by - GROUND_H);
@@ -117,7 +114,6 @@ export default function FlappyDuck() {
       ctx.fillRect(x + 6, by, 6, H - by - GROUND_H);
       ctx.fillStyle = dark;
       ctx.fillRect(x + PIPE_W - 8, by, 8, H - by - GROUND_H);
-      // bottom cap
       ctx.fillStyle = pipe;
       ctx.fillRect(x - 4, by, PIPE_W + 8, 22);
       ctx.fillStyle = light;
@@ -133,14 +129,12 @@ export default function FlappyDuck() {
       ctx.save();
       ctx.translate(DUCK_X, y);
       ctx.rotate(tilt);
-      // shadow outline
       const yellow = "hsl(50 100% 55%)";
       const yellowD = "hsl(45 90% 45%)";
       const beak = "hsl(25 95% 55%)";
       const beakD = "hsl(20 90% 40%)";
       const blk = "hsl(30 30% 15%)";
       const wht = "#ffffff";
-      // body (pixel blob)
       ctx.fillStyle = blk;
       ctx.fillRect(-18, -12, 36, 24);
       ctx.fillRect(-14, -16, 28, 4);
@@ -149,10 +143,8 @@ export default function FlappyDuck() {
       ctx.fillRect(-16, -12, 32, 24);
       ctx.fillRect(-12, -14, 24, 2);
       ctx.fillRect(-12, 12, 24, 2);
-      // belly highlight
       ctx.fillStyle = yellowD;
       ctx.fillRect(-12, 4, 22, 8);
-      // eye white
       ctx.fillStyle = wht;
       ctx.fillRect(4, -8, 8, 8);
       ctx.fillStyle = blk;
@@ -160,10 +152,8 @@ export default function FlappyDuck() {
       ctx.fillRect(4, -8, 2, 8);
       ctx.fillRect(10, -8, 2, 8);
       ctx.fillRect(4, -2, 8, 2);
-      // pupil
       ctx.fillStyle = blk;
       ctx.fillRect(8, -6, 4, 4);
-      // beak
       ctx.fillStyle = beakD;
       ctx.fillRect(12, -2, 12, 8);
       ctx.fillStyle = beak;
@@ -173,7 +163,6 @@ export default function FlappyDuck() {
       ctx.fillRect(12, 5, 12, 1);
       ctx.fillRect(23, -2, 1, 8);
       ctx.fillRect(12, 1, 12, 1);
-      // wing
       const wingY = flapping ? -6 : 2;
       ctx.fillStyle = blk;
       ctx.fillRect(-12, wingY, 16, 10);
@@ -185,22 +174,18 @@ export default function FlappyDuck() {
     };
 
     const draw = () => {
-      // sky
       const grad = ctx.createLinearGradient(0, 0, 0, H - GROUND_H);
       grad.addColorStop(0, "hsl(200 75% 70%)");
       grad.addColorStop(1, "hsl(200 70% 60%)");
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, W, H - GROUND_H);
 
-      // clouds
       drawCloud(((frameRef.current * 0.3) % (W + 60)) - 30, 80, 2);
       drawCloud(((frameRef.current * 0.2 + 200) % (W + 60)) - 30, 160, 1.5);
       drawCloud(((frameRef.current * 0.25 + 100) % (W + 60)) - 30, 240, 1.8);
 
-      // pipes
       for (const p of pipesRef.current) drawPipe(p.x, p.topH);
 
-      // ground
       ctx.fillStyle = "hsl(110 55% 40%)";
       ctx.fillRect(0, H - GROUND_H, W, 12);
       ctx.fillStyle = "hsl(110 55% 30%)";
@@ -218,10 +203,8 @@ export default function FlappyDuck() {
       ctx.fillStyle = "hsl(30 30% 15%)";
       ctx.fillRect(0, H - GROUND_H, W, 3);
 
-      // duck
       drawDuck(yRef.current, tiltRef.current, Math.floor(frameRef.current / 6) % 2 === 0);
 
-      // score in-game
       if (stateRef.current === "playing") {
         ctx.font = "32px 'Press Start 2P', monospace";
         ctx.textAlign = "center";
@@ -247,12 +230,13 @@ export default function FlappyDuck() {
     const loop = (t: number) => {
       const dt = Math.min(32, t - last);
       last = t;
-      frameRef.current++;
+      const scale = dt / 16.667;
+      frameRef.current += scale;
 
       if (stateRef.current === "playing") {
-        groundOffRef.current += PIPE_SPEED;
-        vRef.current += GRAVITY;
-        yRef.current += vRef.current;
+        groundOffRef.current += PIPE_SPEED * scale;
+        vRef.current += GRAVITY * scale;
+        yRef.current += vRef.current * scale;
         tiltRef.current = Math.max(-0.4, Math.min(1.2, vRef.current * 0.08));
 
         lastSpawnRef.current += dt;
@@ -264,7 +248,7 @@ export default function FlappyDuck() {
           pipesRef.current.push({ x: W + 20, topH, passed: false });
         }
         for (const p of pipesRef.current) {
-          p.x -= PIPE_SPEED;
+          p.x -= PIPE_SPEED * scale;
           if (!p.passed && p.x + PIPE_W < DUCK_X) {
             p.passed = true;
             scoreRef.current++;
@@ -286,15 +270,14 @@ export default function FlappyDuck() {
           force((n) => n + 1);
         }
       } else if (stateRef.current === "idle") {
-        groundOffRef.current += PIPE_SPEED;
+        groundOffRef.current += PIPE_SPEED * scale;
         yRef.current = H / 2 + Math.sin(frameRef.current * 0.08) * 8;
         tiltRef.current = 0;
       } else {
-        // dead - duck falls
         if (yRef.current + DUCK_R < H - GROUND_H) {
-          vRef.current += GRAVITY;
-          yRef.current += vRef.current;
-          tiltRef.current = Math.min(1.4, tiltRef.current + 0.05);
+          vRef.current += GRAVITY * scale;
+          yRef.current += vRef.current * scale;
+          tiltRef.current = Math.min(1.4, tiltRef.current + 0.05 * scale);
         }
       }
 
@@ -352,14 +335,8 @@ export default function FlappyDuck() {
       ref={wrapRef}
       className={`relative select-none ${isFs ? "bg-background flex items-center justify-center w-screen h-screen" : ""}`}
       style={isFs ? undefined : { width: size.w }}
-      onMouseDown={(e) => {
-        e.preventDefault();
-        flap();
-      }}
-      onTouchStart={(e) => {
-        e.preventDefault();
-        flap();
-      }}
+      onMouseDown={(e) => { e.preventDefault(); flap(); }}
+      onTouchStart={(e) => { e.preventDefault(); flap(); }}
     >
       <div className="relative" style={{ width: size.w, height: size.h }}>
         <canvas
@@ -373,10 +350,7 @@ export default function FlappyDuck() {
           type="button"
           onMouseDown={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleFs();
-          }}
+          onClick={(e) => { e.stopPropagation(); toggleFs(); }}
           className="absolute top-2 right-2 bg-card border-2 border-foreground pixel-shadow p-2 hover:bg-primary hover:text-primary-foreground transition-colors"
           aria-label={isFs ? "Exit fullscreen" : "Enter fullscreen"}
         >
@@ -388,9 +362,7 @@ export default function FlappyDuck() {
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-6 px-6 text-center">
           <div className="bg-card border-4 border-foreground pixel-shadow px-5 py-4">
             <h1 className="pixel-text text-[18px] leading-tight text-foreground">
-              JAKE'S
-              <br />
-              FLAPPY DUCK
+              JAKE'S<br />FLAPPY DUCK
             </h1>
           </div>
           <div className="bg-primary border-4 border-foreground pixel-shadow px-4 py-3">
