@@ -1,0 +1,364 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+
+const W = 400;
+const H = 600;
+const GRAVITY = 0.45;
+const FLAP = -7.5;
+const PIPE_W = 60;
+const GAP = 160;
+const PIPE_SPEED = 2.2;
+const SPAWN_MS = 1500;
+const DUCK_X = 90;
+const DUCK_R = 16;
+const GROUND_H = 60;
+
+type Pipe = { x: number; topH: number; passed: boolean };
+type State = "idle" | "playing" | "dead";
+
+const HS_KEY = "jakes_flappy_duck_hs";
+
+export default function FlappyDuck() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const stateRef = useRef<State>("idle");
+  const [, force] = useState(0);
+  const yRef = useRef(H / 2);
+  const vRef = useRef(0);
+  const pipesRef = useRef<Pipe[]>([]);
+  const scoreRef = useRef(0);
+  const [score, setScore] = useState(0);
+  const [hs, setHs] = useState(0);
+  const lastSpawnRef = useRef(0);
+  const tiltRef = useRef(0);
+  const groundOffRef = useRef(0);
+  const frameRef = useRef(0);
+
+  useEffect(() => {
+    const v = parseInt(localStorage.getItem(HS_KEY) || "0", 10);
+    setHs(isNaN(v) ? 0 : v);
+  }, []);
+
+  const reset = useCallback(() => {
+    yRef.current = H / 2;
+    vRef.current = 0;
+    pipesRef.current = [];
+    scoreRef.current = 0;
+    setScore(0);
+    lastSpawnRef.current = 0;
+    tiltRef.current = 0;
+  }, []);
+
+  const flap = useCallback(() => {
+    if (stateRef.current === "idle") {
+      reset();
+      stateRef.current = "playing";
+      force((n) => n + 1);
+    }
+    if (stateRef.current === "playing") {
+      vRef.current = FLAP;
+    } else if (stateRef.current === "dead") {
+      stateRef.current = "idle";
+      reset();
+      force((n) => n + 1);
+    }
+  }, [reset]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code === "Space" || e.code === "ArrowUp") {
+        e.preventDefault();
+        flap();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [flap]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current!;
+    const ctx = canvas.getContext("2d")!;
+    let raf = 0;
+    let last = performance.now();
+
+    const drawCloud = (x: number, y: number, s: number) => {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(x, y, 24 * s, 8 * s);
+      ctx.fillRect(x + 6 * s, y - 6 * s, 18 * s, 8 * s);
+      ctx.fillRect(x + 4 * s, y + 6 * s, 22 * s, 6 * s);
+    };
+
+    const drawPipe = (x: number, topH: number) => {
+      const pipe = "hsl(110 65% 35%)";
+      const dark = "hsl(110 70% 25%)";
+      const light = "hsl(110 55% 50%)";
+      // top
+      ctx.fillStyle = pipe;
+      ctx.fillRect(x, 0, PIPE_W, topH);
+      ctx.fillStyle = light;
+      ctx.fillRect(x + 6, 0, 6, topH);
+      ctx.fillStyle = dark;
+      ctx.fillRect(x + PIPE_W - 8, 0, 8, topH);
+      // top cap
+      ctx.fillStyle = pipe;
+      ctx.fillRect(x - 4, topH - 22, PIPE_W + 8, 22);
+      ctx.fillStyle = light;
+      ctx.fillRect(x - 4 + 6, topH - 22, 6, 22);
+      ctx.fillStyle = dark;
+      ctx.fillRect(x + PIPE_W - 8, topH - 22, 12, 22);
+      ctx.fillStyle = "hsl(30 30% 15%)";
+      ctx.fillRect(x - 4, topH - 22, PIPE_W + 8, 3);
+      ctx.fillRect(x - 4, topH - 4, PIPE_W + 8, 4);
+
+      // bottom
+      const by = topH + GAP;
+      ctx.fillStyle = pipe;
+      ctx.fillRect(x, by, PIPE_W, H - by - GROUND_H);
+      ctx.fillStyle = light;
+      ctx.fillRect(x + 6, by, 6, H - by - GROUND_H);
+      ctx.fillStyle = dark;
+      ctx.fillRect(x + PIPE_W - 8, by, 8, H - by - GROUND_H);
+      // bottom cap
+      ctx.fillStyle = pipe;
+      ctx.fillRect(x - 4, by, PIPE_W + 8, 22);
+      ctx.fillStyle = light;
+      ctx.fillRect(x - 4 + 6, by, 6, 22);
+      ctx.fillStyle = dark;
+      ctx.fillRect(x + PIPE_W - 8, by, 12, 22);
+      ctx.fillStyle = "hsl(30 30% 15%)";
+      ctx.fillRect(x - 4, by, PIPE_W + 8, 3);
+      ctx.fillRect(x - 4, by + 18, PIPE_W + 8, 4);
+    };
+
+    const drawDuck = (y: number, tilt: number, flapping: boolean) => {
+      ctx.save();
+      ctx.translate(DUCK_X, y);
+      ctx.rotate(tilt);
+      // shadow outline
+      const yellow = "hsl(50 100% 55%)";
+      const yellowD = "hsl(45 90% 45%)";
+      const beak = "hsl(25 95% 55%)";
+      const beakD = "hsl(20 90% 40%)";
+      const blk = "hsl(30 30% 15%)";
+      const wht = "#ffffff";
+      // body (pixel blob)
+      ctx.fillStyle = blk;
+      ctx.fillRect(-18, -12, 36, 24);
+      ctx.fillRect(-14, -16, 28, 4);
+      ctx.fillRect(-14, 12, 28, 4);
+      ctx.fillStyle = yellow;
+      ctx.fillRect(-16, -12, 32, 24);
+      ctx.fillRect(-12, -14, 24, 2);
+      ctx.fillRect(-12, 12, 24, 2);
+      // belly highlight
+      ctx.fillStyle = yellowD;
+      ctx.fillRect(-12, 4, 22, 8);
+      // eye white
+      ctx.fillStyle = wht;
+      ctx.fillRect(4, -8, 8, 8);
+      ctx.fillStyle = blk;
+      ctx.fillRect(4, -8, 8, 2);
+      ctx.fillRect(4, -8, 2, 8);
+      ctx.fillRect(10, -8, 2, 8);
+      ctx.fillRect(4, -2, 8, 2);
+      // pupil
+      ctx.fillStyle = blk;
+      ctx.fillRect(8, -6, 4, 4);
+      // beak
+      ctx.fillStyle = beakD;
+      ctx.fillRect(12, -2, 12, 8);
+      ctx.fillStyle = beak;
+      ctx.fillRect(12, -2, 12, 4);
+      ctx.fillStyle = blk;
+      ctx.fillRect(12, -2, 12, 1);
+      ctx.fillRect(12, 5, 12, 1);
+      ctx.fillRect(23, -2, 1, 8);
+      ctx.fillRect(12, 1, 12, 1);
+      // wing
+      const wingY = flapping ? -6 : 2;
+      ctx.fillStyle = blk;
+      ctx.fillRect(-12, wingY, 16, 10);
+      ctx.fillStyle = yellowD;
+      ctx.fillRect(-10, wingY + 1, 12, 8);
+      ctx.fillStyle = yellow;
+      ctx.fillRect(-10, wingY + 1, 12, 3);
+      ctx.restore();
+    };
+
+    const draw = () => {
+      // sky
+      const grad = ctx.createLinearGradient(0, 0, 0, H - GROUND_H);
+      grad.addColorStop(0, "hsl(200 75% 70%)");
+      grad.addColorStop(1, "hsl(200 70% 60%)");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H - GROUND_H);
+
+      // clouds
+      drawCloud(((frameRef.current * 0.3) % (W + 60)) - 30, 80, 2);
+      drawCloud(((frameRef.current * 0.2 + 200) % (W + 60)) - 30, 160, 1.5);
+      drawCloud(((frameRef.current * 0.25 + 100) % (W + 60)) - 30, 240, 1.8);
+
+      // pipes
+      for (const p of pipesRef.current) drawPipe(p.x, p.topH);
+
+      // ground
+      ctx.fillStyle = "hsl(110 55% 40%)";
+      ctx.fillRect(0, H - GROUND_H, W, 12);
+      ctx.fillStyle = "hsl(110 55% 30%)";
+      const off = groundOffRef.current % 16;
+      for (let i = -1; i < W / 16 + 1; i++) {
+        ctx.fillRect(i * 16 - off, H - GROUND_H + 8, 8, 4);
+      }
+      ctx.fillStyle = "hsl(35 60% 35%)";
+      ctx.fillRect(0, H - GROUND_H + 12, W, GROUND_H - 12);
+      ctx.fillStyle = "hsl(35 60% 25%)";
+      for (let i = 0; i < W; i += 24) {
+        ctx.fillRect(i - off, H - 24, 8, 4);
+        ctx.fillRect(i + 12 - off, H - 14, 6, 4);
+      }
+      ctx.fillStyle = "hsl(30 30% 15%)";
+      ctx.fillRect(0, H - GROUND_H, W, 3);
+
+      // duck
+      drawDuck(yRef.current, tiltRef.current, Math.floor(frameRef.current / 6) % 2 === 0);
+
+      // score in-game
+      if (stateRef.current === "playing") {
+        ctx.font = "32px 'Press Start 2P', monospace";
+        ctx.textAlign = "center";
+        ctx.fillStyle = "hsl(30 30% 15%)";
+        ctx.fillText(String(scoreRef.current), W / 2 + 3, 80 + 3);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(String(scoreRef.current), W / 2, 80);
+      }
+    };
+
+    const collide = () => {
+      const y = yRef.current;
+      if (y + DUCK_R >= H - GROUND_H) return true;
+      if (y - DUCK_R <= 0) return true;
+      for (const p of pipesRef.current) {
+        if (DUCK_X + DUCK_R > p.x && DUCK_X - DUCK_R < p.x + PIPE_W) {
+          if (y - DUCK_R < p.topH || y + DUCK_R > p.topH + GAP) return true;
+        }
+      }
+      return false;
+    };
+
+    const loop = (t: number) => {
+      const dt = Math.min(32, t - last);
+      last = t;
+      frameRef.current++;
+
+      if (stateRef.current === "playing") {
+        groundOffRef.current += PIPE_SPEED;
+        vRef.current += GRAVITY;
+        yRef.current += vRef.current;
+        tiltRef.current = Math.max(-0.4, Math.min(1.2, vRef.current * 0.08));
+
+        lastSpawnRef.current += dt;
+        if (lastSpawnRef.current >= SPAWN_MS) {
+          lastSpawnRef.current = 0;
+          const minTop = 60;
+          const maxTop = H - GROUND_H - GAP - 60;
+          const topH = minTop + Math.random() * (maxTop - minTop);
+          pipesRef.current.push({ x: W + 20, topH, passed: false });
+        }
+        for (const p of pipesRef.current) {
+          p.x -= PIPE_SPEED;
+          if (!p.passed && p.x + PIPE_W < DUCK_X) {
+            p.passed = true;
+            scoreRef.current++;
+            setScore(scoreRef.current);
+          }
+        }
+        pipesRef.current = pipesRef.current.filter((p) => p.x + PIPE_W > -10);
+
+        if (collide()) {
+          stateRef.current = "dead";
+          const final = scoreRef.current;
+          setHs((prev) => {
+            if (final > prev) {
+              localStorage.setItem(HS_KEY, String(final));
+              return final;
+            }
+            return prev;
+          });
+          force((n) => n + 1);
+        }
+      } else if (stateRef.current === "idle") {
+        groundOffRef.current += PIPE_SPEED;
+        yRef.current = H / 2 + Math.sin(frameRef.current * 0.08) * 8;
+        tiltRef.current = 0;
+      } else {
+        // dead - duck falls
+        if (yRef.current + DUCK_R < H - GROUND_H) {
+          vRef.current += GRAVITY;
+          yRef.current += vRef.current;
+          tiltRef.current = Math.min(1.4, tiltRef.current + 0.05);
+        }
+      }
+
+      draw();
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  const state = stateRef.current;
+
+  return (
+    <div
+      className="relative select-none"
+      style={{ width: W, maxWidth: "100%" }}
+      onMouseDown={(e) => {
+        e.preventDefault();
+        flap();
+      }}
+      onTouchStart={(e) => {
+        e.preventDefault();
+        flap();
+      }}
+    >
+      <canvas
+        ref={canvasRef}
+        width={W}
+        height={H}
+        className="block w-full border-4 border-foreground pixel-shadow-lg bg-background cursor-pointer"
+        style={{ imageRendering: "pixelated", aspectRatio: `${W}/${H}` }}
+      />
+
+      {state === "idle" && (
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-6 px-6 text-center">
+          <div className="bg-card border-4 border-foreground pixel-shadow px-5 py-4">
+            <h1 className="pixel-text text-[18px] leading-tight text-foreground">
+              JAKE'S
+              <br />
+              FLAPPY DUCK
+            </h1>
+          </div>
+          <div className="bg-primary border-4 border-foreground pixel-shadow px-4 py-3">
+            <p className="pixel-text text-[10px] text-primary-foreground">TAP / SPACE TO FLAP</p>
+          </div>
+        </div>
+      )}
+
+      {state === "dead" && (
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center">
+          <div className="bg-destructive border-4 border-foreground pixel-shadow px-5 py-3">
+            <p className="pixel-text text-[14px] text-destructive-foreground">GAME OVER</p>
+          </div>
+          <div className="bg-card border-4 border-foreground pixel-shadow px-5 py-4 flex flex-col gap-2">
+            <p className="pixel-text text-[10px] text-muted-foreground">SCORE</p>
+            <p className="pixel-text text-[20px] text-foreground">{score}</p>
+            <div className="h-[2px] bg-foreground my-1" />
+            <p className="pixel-text text-[10px] text-muted-foreground">BEST</p>
+            <p className="pixel-text text-[16px] text-secondary">{hs}</p>
+          </div>
+          <div className="bg-primary border-4 border-foreground pixel-shadow px-4 py-3 animate-pulse">
+            <p className="pixel-text text-[10px] text-primary-foreground">TAP TO RETRY</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
