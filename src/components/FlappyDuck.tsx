@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Maximize2, Minimize2 } from "lucide-react";
 
 const W = 400;
 const H = 600;
@@ -305,11 +306,52 @@ export default function FlappyDuck() {
   }, []);
 
   const state = stateRef.current;
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [isFs, setIsFs] = useState(false);
+  const [vp, setVp] = useState({ w: typeof window !== "undefined" ? window.innerWidth : 800, h: typeof window !== "undefined" ? window.innerHeight : 600 });
+
+  useEffect(() => {
+    const onResize = () => setVp({ w: window.innerWidth, h: window.innerHeight });
+    const onFs = () => setIsFs(!!document.fullscreenElement);
+    window.addEventListener("resize", onResize);
+    document.addEventListener("fullscreenchange", onFs);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      document.removeEventListener("fullscreenchange", onFs);
+    };
+  }, []);
+
+  const size = useMemo(() => {
+    const padW = isFs ? 0 : 32;
+    const padH = isFs ? 0 : 220;
+    const availW = vp.w - padW;
+    const availH = vp.h - padH;
+    const ratio = W / H;
+    let w = availW;
+    let h = w / ratio;
+    if (h > availH) {
+      h = availH;
+      w = h * ratio;
+    }
+    return { w: Math.max(280, Math.floor(w)), h: Math.max(420, Math.floor(h)) };
+  }, [vp, isFs]);
+
+  const toggleFs = useCallback(async () => {
+    const el = wrapRef.current;
+    if (!el) return;
+    try {
+      if (!document.fullscreenElement) await el.requestFullscreen();
+      else await document.exitFullscreen();
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   return (
     <div
-      className="relative select-none"
-      style={{ width: W, maxWidth: "100%" }}
+      ref={wrapRef}
+      className={`relative select-none ${isFs ? "bg-background flex items-center justify-center w-screen h-screen" : ""}`}
+      style={isFs ? undefined : { width: size.w }}
       onMouseDown={(e) => {
         e.preventDefault();
         flap();
@@ -319,13 +361,28 @@ export default function FlappyDuck() {
         flap();
       }}
     >
-      <canvas
-        ref={canvasRef}
-        width={W}
-        height={H}
-        className="block w-full border-4 border-foreground pixel-shadow-lg bg-background cursor-pointer"
-        style={{ imageRendering: "pixelated", aspectRatio: `${W}/${H}` }}
-      />
+      <div className="relative" style={{ width: size.w, height: size.h }}>
+        <canvas
+          ref={canvasRef}
+          width={W}
+          height={H}
+          className="block border-4 border-foreground pixel-shadow-lg bg-background cursor-pointer"
+          style={{ imageRendering: "pixelated", width: size.w, height: size.h }}
+        />
+        <button
+          type="button"
+          onMouseDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleFs();
+          }}
+          className="absolute top-2 right-2 bg-card border-2 border-foreground pixel-shadow p-2 hover:bg-primary hover:text-primary-foreground transition-colors"
+          aria-label={isFs ? "Exit fullscreen" : "Enter fullscreen"}
+        >
+          {isFs ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+        </button>
+      </div>
 
       {state === "idle" && (
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-6 px-6 text-center">
