@@ -18,7 +18,7 @@ type State = "idle" | "playing" | "dead";
 
 const HS_KEY = "jakes_flappy_duck_hs";
 
-export default function FlappyDuck({ onGameOver }: { onGameOver?: (score: number) => void }) {
+export default function FlappyDuck({ onGameOver, onOpenLeaderboard }: { onGameOver?: (score: number) => void; onOpenLeaderboard?: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const onGameOverRef = useRef(onGameOver);
   useEffect(() => {
@@ -370,8 +370,23 @@ export default function FlappyDuck({ onGameOver }: { onGameOver?: (score: number
               JAKE'S<br />FLAPPY DUCK
             </h1>
           </div>
-          <div className="bg-primary border-4 border-foreground pixel-shadow px-4 py-3">
+          <div className="bg-primary border-4 border-foreground pixel-shadow px-4 py-3 flex items-center gap-3 pointer-events-auto">
             <p className="pixel-text text-[10px] text-primary-foreground">TAP / SPACE TO FLAP</p>
+            {onOpenLeaderboard && (
+              <button
+                type="button"
+                onMouseDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenLeaderboard();
+                }}
+                aria-label="Open leaderboard"
+                className="bg-secondary border-2 border-foreground pixel-shadow p-1.5 hover:opacity-90"
+              >
+                <Trophy className="w-4 h-4 text-secondary-foreground" />
+              </button>
+            )}
           </div>
         </div>
       )}
