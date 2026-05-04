@@ -56,15 +56,7 @@ const Index = () => {
 
   return (
     <main className="min-h-screen w-full bg-background flex flex-col items-center justify-start px-4 py-6 gap-5 overflow-x-hidden">
-      <header className="flex flex-col items-center gap-3 relative w-full max-w-[400px]">
-        <button
-          type="button"
-          onClick={() => setShowBoard(true)}
-          aria-label="Open leaderboard"
-          className="absolute right-0 top-0 bg-secondary border-4 border-foreground pixel-shadow p-2 hover:bg-primary hover:text-primary-foreground transition-colors"
-        >
-          <Trophy className="w-5 h-5 text-secondary-foreground" />
-        </button>
+      <header className="flex flex-col items-center gap-3 w-full max-w-[400px]">
         <div className="bg-primary border-4 border-foreground pixel-shadow px-5 py-3">
           <h1 className="pixel-text text-[14px] sm:text-[18px] text-primary-foreground">
             JAKE'S FLAPPY DUCK
@@ -79,11 +71,22 @@ const Index = () => {
 
       <FlappyDuck onGameOver={handleGameOver} />
 
-      <footer className="bg-card border-4 border-foreground pixel-shadow px-4 py-2">
-        <p className="pixel-text text-[8px] text-muted-foreground">
-          SPACE / TAP TO FLAP · DODGE THE PIPES
-        </p>
-      </footer>
+      <div className="flex items-center gap-2">
+        <footer className="bg-card border-4 border-foreground pixel-shadow px-4 py-2">
+          <p className="pixel-text text-[8px] text-muted-foreground">
+            SPACE / TAP TO FLAP · DODGE THE PIPES
+          </p>
+        </footer>
+        <button
+          type="button"
+          onClick={() => setShowBoard(true)}
+          aria-label="Open leaderboard"
+          className="bg-secondary border-4 border-foreground pixel-shadow p-2 hover:bg-primary hover:text-primary-foreground transition-colors"
+        >
+          <Trophy className="w-5 h-5 text-secondary-foreground" />
+        </button>
+      </div>
+
 
       {showBoard && (
         <div
