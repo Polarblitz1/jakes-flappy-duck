@@ -18,8 +18,12 @@ type State = "idle" | "playing" | "dead";
 
 const HS_KEY = "jakes_flappy_duck_hs";
 
-export default function FlappyDuck() {
+export default function FlappyDuck({ onGameOver }: { onGameOver?: (score: number) => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const onGameOverRef = useRef(onGameOver);
+  useEffect(() => {
+    onGameOverRef.current = onGameOver;
+  }, [onGameOver]);
   const stateRef = useRef<State>("idle");
   const [, force] = useState(0);
   const yRef = useRef(H / 2);
@@ -267,6 +271,7 @@ export default function FlappyDuck() {
             }
             return prev;
           });
+          onGameOverRef.current?.(final);
           force((n) => n + 1);
         }
       } else if (stateRef.current === "idle") {
