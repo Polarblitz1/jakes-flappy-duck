@@ -3,6 +3,7 @@ import FlappyDuck from "@/components/FlappyDuck";
 import Leaderboard from "@/components/Leaderboard";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Trophy, X } from "lucide-react";
 
 const HS_KEY = "jakes_flappy_duck_hs";
 const NAME_KEY = "jakes_flappy_duck_name";
@@ -13,6 +14,7 @@ const Index = () => {
   const [name, setName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [showBoard, setShowBoard] = useState(false);
 
   useEffect(() => {
     const read = () => {
@@ -49,11 +51,20 @@ const Index = () => {
     toast.success("Score submitted!");
     setPendingScore(null);
     setRefreshKey((k) => k + 1);
+    setShowBoard(true);
   };
 
   return (
     <main className="min-h-screen w-full bg-background flex flex-col items-center justify-start px-4 py-6 gap-5 overflow-x-hidden">
-      <header className="flex flex-col items-center gap-3">
+      <header className="flex flex-col items-center gap-3 relative w-full max-w-[400px]">
+        <button
+          type="button"
+          onClick={() => setShowBoard(true)}
+          aria-label="Open leaderboard"
+          className="absolute right-0 top-0 bg-secondary border-4 border-foreground pixel-shadow p-2 hover:bg-primary hover:text-primary-foreground transition-colors"
+        >
+          <Trophy className="w-5 h-5 text-secondary-foreground" />
+        </button>
         <div className="bg-primary border-4 border-foreground pixel-shadow px-5 py-3">
           <h1 className="pixel-text text-[14px] sm:text-[18px] text-primary-foreground">
             JAKE'S FLAPPY DUCK
@@ -74,7 +85,24 @@ const Index = () => {
         </p>
       </footer>
 
-      <Leaderboard refreshKey={refreshKey} />
+      {showBoard && (
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-foreground/70 px-4"
+          onClick={() => setShowBoard(false)}
+        >
+          <div className="relative" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => setShowBoard(false)}
+              aria-label="Close leaderboard"
+              className="absolute -top-3 -right-3 bg-destructive border-4 border-foreground pixel-shadow p-1 hover:opacity-90 z-10"
+            >
+              <X className="w-4 h-4 text-destructive-foreground" />
+            </button>
+            <Leaderboard refreshKey={refreshKey} />
+          </div>
+        </div>
+      )}
 
       {pendingScore != null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/70 px-4">
