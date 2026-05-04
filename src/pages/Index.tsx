@@ -69,23 +69,13 @@ const Index = () => {
         </div>
       </header>
 
-      <FlappyDuck onGameOver={handleGameOver} />
+      <FlappyDuck onGameOver={handleGameOver} onOpenLeaderboard={() => setShowBoard(true)} />
 
-      <div className="flex items-center gap-2">
-        <footer className="bg-card border-4 border-foreground pixel-shadow px-4 py-2">
-          <p className="pixel-text text-[8px] text-muted-foreground">
-            SPACE / TAP TO FLAP · DODGE THE PIPES
-          </p>
-        </footer>
-        <button
-          type="button"
-          onClick={() => setShowBoard(true)}
-          aria-label="Open leaderboard"
-          className="bg-secondary border-4 border-foreground pixel-shadow p-2 hover:bg-primary hover:text-primary-foreground transition-colors"
-        >
-          <Trophy className="w-5 h-5 text-secondary-foreground" />
-        </button>
-      </div>
+      <footer className="bg-card border-4 border-foreground pixel-shadow px-4 py-2">
+        <p className="pixel-text text-[8px] text-muted-foreground">
+          SPACE / TAP TO FLAP · DODGE THE PIPES
+        </p>
+      </footer>
 
 
       {showBoard && (
