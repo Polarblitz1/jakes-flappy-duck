@@ -66,6 +66,9 @@ export default function FlappyDuck({ onGameOver, onOpenLeaderboard }: { onGameOv
     force((n) => n + 1);
   }, []);
 
+  const freezeRef = useRef(false);
+  const [freezeCount, setFreezeCount] = useState(0);
+
   const reviveFromQuiz = useCallback(() => {
     setQuiz(null);
     usedReviveRef.current = true;
@@ -75,7 +78,20 @@ export default function FlappyDuck({ onGameOver, onOpenLeaderboard }: { onGameOv
     lastSpawnRef.current = 0;
     tiltRef.current = 0;
     stateRef.current = "playing";
+    freezeRef.current = true;
+    setFreezeCount(3);
     force((n) => n + 1);
+    let n = 3;
+    const id = window.setInterval(() => {
+      n -= 1;
+      if (n <= 0) {
+        window.clearInterval(id);
+        freezeRef.current = false;
+        setFreezeCount(0);
+      } else {
+        setFreezeCount(n);
+      }
+    }, 1000);
   }, []);
 
   const answerQuiz = useCallback((value: number) => {
@@ -117,7 +133,7 @@ export default function FlappyDuck({ onGameOver, onOpenLeaderboard }: { onGameOv
   }, []);
 
   const flap = useCallback(() => {
-    if (quizRef.current) return;
+    if (quizRef.current || freezeRef.current) return;
     if (stateRef.current === "idle") {
       reset();
       stateRef.current = "playing";
@@ -302,7 +318,7 @@ export default function FlappyDuck({ onGameOver, onOpenLeaderboard }: { onGameOv
       const scale = dt / 16.667;
       frameRef.current += scale;
 
-      if (stateRef.current === "playing") {
+      if (stateRef.current === "playing" && !freezeRef.current) {
         groundOffRef.current += PIPE_SPEED * scale;
         vRef.current += GRAVITY * scale;
         yRef.current += vRef.current * scale;
@@ -505,6 +521,14 @@ export default function FlappyDuck({ onGameOver, onOpenLeaderboard }: { onGameOv
             ))}
           </div>
           <p className="pixel-text text-[8px] text-background">CORRECT = REVIVE!</p>
+        </div>
+      )}
+
+      {freezeCount > 0 && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="bg-card border-4 border-foreground pixel-shadow px-6 py-4">
+            <p className="pixel-text text-[32px] text-foreground">{freezeCount}</p>
+          </div>
         </div>
       )}
     </div>
