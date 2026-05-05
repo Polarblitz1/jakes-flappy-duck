@@ -66,6 +66,9 @@ export default function FlappyDuck({ onGameOver, onOpenLeaderboard }: { onGameOv
     force((n) => n + 1);
   }, []);
 
+  const freezeRef = useRef(false);
+  const [freezeCount, setFreezeCount] = useState(0);
+
   const reviveFromQuiz = useCallback(() => {
     setQuiz(null);
     usedReviveRef.current = true;
@@ -75,7 +78,20 @@ export default function FlappyDuck({ onGameOver, onOpenLeaderboard }: { onGameOv
     lastSpawnRef.current = 0;
     tiltRef.current = 0;
     stateRef.current = "playing";
+    freezeRef.current = true;
+    setFreezeCount(3);
     force((n) => n + 1);
+    let n = 3;
+    const id = window.setInterval(() => {
+      n -= 1;
+      if (n <= 0) {
+        window.clearInterval(id);
+        freezeRef.current = false;
+        setFreezeCount(0);
+      } else {
+        setFreezeCount(n);
+      }
+    }, 1000);
   }, []);
 
   const answerQuiz = useCallback((value: number) => {
