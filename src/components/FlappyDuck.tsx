@@ -454,7 +454,7 @@ export default function FlappyDuck({ onGameOver, onOpenLeaderboard }: { onGameOv
         </div>
       )}
 
-      {state === "dead" && (
+      {state === "dead" && !quiz && (
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center">
           <div className="bg-destructive border-4 border-foreground pixel-shadow px-5 py-3">
             <p className="pixel-text text-[14px] text-destructive-foreground">GAME OVER</p>
@@ -469,6 +469,35 @@ export default function FlappyDuck({ onGameOver, onOpenLeaderboard }: { onGameOv
           <div className="bg-primary border-4 border-foreground pixel-shadow px-4 py-3 animate-pulse">
             <p className="pixel-text text-[10px] text-primary-foreground">TAP TO RETRY</p>
           </div>
+        </div>
+      )}
+
+      {quiz && (
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center bg-foreground/70"
+          onMouseDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="bg-destructive border-4 border-foreground pixel-shadow px-4 py-2">
+            <p className="pixel-text text-[10px] text-destructive-foreground">REVIVE QUIZ · {quizTime}s</p>
+          </div>
+          <div className="bg-card border-4 border-foreground pixel-shadow px-5 py-4">
+            <p className="pixel-text text-[20px] text-foreground">{quiz.a} × {quiz.b} = ?</p>
+          </div>
+          <div className="flex flex-col gap-2 w-full max-w-[240px]">
+            {quiz.options.map((opt) => (
+              <button
+                key={opt}
+                type="button"
+                onClick={(e) => { e.stopPropagation(); answerQuiz(opt); }}
+                className="bg-primary border-4 border-foreground pixel-shadow pixel-text text-[14px] text-primary-foreground py-3 hover:opacity-90"
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+          <p className="pixel-text text-[8px] text-background">CORRECT = REVIVE!</p>
         </div>
       )}
     </div>
