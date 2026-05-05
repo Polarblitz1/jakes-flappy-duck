@@ -37,6 +37,7 @@ export default function FlappyDuck({ onGameOver, onOpenLeaderboard }: { onGameOv
   const groundOffRef = useRef(0);
   const frameRef = useRef(0);
   const finalScoreRef = useRef(0);
+  const usedReviveRef = useRef(false);
 
   type Quiz = { a: number; b: number; options: number[]; correct: number };
   const [quiz, setQuiz] = useState<Quiz | null>(null);
