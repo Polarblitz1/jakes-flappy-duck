@@ -523,6 +523,14 @@ export default function FlappyDuck({ onGameOver, onOpenLeaderboard }: { onGameOv
           <p className="pixel-text text-[8px] text-background">CORRECT = REVIVE!</p>
         </div>
       )}
+
+      {freezeCount > 0 && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="bg-card border-4 border-foreground pixel-shadow px-6 py-4">
+            <p className="pixel-text text-[32px] text-foreground">{freezeCount}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
