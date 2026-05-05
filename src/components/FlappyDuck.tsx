@@ -37,6 +37,7 @@ export default function FlappyDuck({ onGameOver, onOpenLeaderboard }: { onGameOv
   const groundOffRef = useRef(0);
   const frameRef = useRef(0);
   const finalScoreRef = useRef(0);
+  const usedReviveRef = useRef(false);
 
   type Quiz = { a: number; b: number; options: number[]; correct: number };
   const [quiz, setQuiz] = useState<Quiz | null>(null);
@@ -67,6 +68,7 @@ export default function FlappyDuck({ onGameOver, onOpenLeaderboard }: { onGameOv
 
   const reviveFromQuiz = useCallback(() => {
     setQuiz(null);
+    usedReviveRef.current = true;
     yRef.current = H / 2;
     vRef.current = 0;
     pipesRef.current = [];
@@ -111,6 +113,7 @@ export default function FlappyDuck({ onGameOver, onOpenLeaderboard }: { onGameOv
     setScore(0);
     lastSpawnRef.current = 0;
     tiltRef.current = 0;
+    usedReviveRef.current = false;
   }, []);
 
   const flap = useCallback(() => {
@@ -334,7 +337,11 @@ export default function FlappyDuck({ onGameOver, onOpenLeaderboard }: { onGameOv
             }
             return prev;
           });
-          startQuiz();
+          if (!usedReviveRef.current) {
+            startQuiz();
+          } else {
+            onGameOverRef.current?.(final);
+          }
           force((n) => n + 1);
         }
       } else if (stateRef.current === "idle") {
