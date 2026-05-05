@@ -36,6 +36,67 @@ export default function FlappyDuck({ onGameOver, onOpenLeaderboard }: { onGameOv
   const tiltRef = useRef(0);
   const groundOffRef = useRef(0);
   const frameRef = useRef(0);
+  const finalScoreRef = useRef(0);
+
+  type Quiz = { a: number; b: number; options: number[]; correct: number };
+  const [quiz, setQuiz] = useState<Quiz | null>(null);
+  const [quizTime, setQuizTime] = useState(10);
+  const quizRef = useRef<Quiz | null>(null);
+  useEffect(() => { quizRef.current = quiz; }, [quiz]);
+
+  const startQuiz = useCallback(() => {
+    const a = 1 + Math.floor(Math.random() * 12);
+    const b = 1 + Math.floor(Math.random() * 12);
+    const correct = a * b;
+    const opts = new Set<number>([correct]);
+    while (opts.size < 3) {
+      const delta = (Math.floor(Math.random() * 9) + 1) * (Math.random() < 0.5 ? -1 : 1);
+      const w = correct + delta;
+      if (w > 0) opts.add(w);
+    }
+    const options = Array.from(opts).sort(() => Math.random() - 0.5);
+    setQuiz({ a, b, options, correct });
+    setQuizTime(10);
+  }, []);
+
+  const failQuiz = useCallback(() => {
+    setQuiz(null);
+    onGameOverRef.current?.(finalScoreRef.current);
+    force((n) => n + 1);
+  }, []);
+
+  const reviveFromQuiz = useCallback(() => {
+    setQuiz(null);
+    yRef.current = H / 2;
+    vRef.current = 0;
+    pipesRef.current = [];
+    lastSpawnRef.current = 0;
+    tiltRef.current = 0;
+    stateRef.current = "playing";
+    force((n) => n + 1);
+  }, []);
+
+  const answerQuiz = useCallback((value: number) => {
+    const q = quizRef.current;
+    if (!q) return;
+    if (value === q.correct) reviveFromQuiz();
+    else failQuiz();
+  }, [reviveFromQuiz, failQuiz]);
+
+  useEffect(() => {
+    if (!quiz) return;
+    const id = window.setInterval(() => {
+      setQuizTime((t) => {
+        if (t <= 1) {
+          window.clearInterval(id);
+          failQuiz();
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [quiz, failQuiz]);
 
   useEffect(() => {
     const v = parseInt(localStorage.getItem(HS_KEY) || "0", 10);
@@ -53,6 +114,7 @@ export default function FlappyDuck({ onGameOver, onOpenLeaderboard }: { onGameOv
   }, []);
 
   const flap = useCallback(() => {
+    if (quizRef.current) return;
     if (stateRef.current === "idle") {
       reset();
       stateRef.current = "playing";
@@ -264,6 +326,7 @@ export default function FlappyDuck({ onGameOver, onOpenLeaderboard }: { onGameOv
         if (collide()) {
           stateRef.current = "dead";
           const final = scoreRef.current;
+          finalScoreRef.current = final;
           setHs((prev) => {
             if (final > prev) {
               localStorage.setItem(HS_KEY, String(final));
@@ -271,7 +334,7 @@ export default function FlappyDuck({ onGameOver, onOpenLeaderboard }: { onGameOv
             }
             return prev;
           });
-          onGameOverRef.current?.(final);
+          startQuiz();
           force((n) => n + 1);
         }
       } else if (stateRef.current === "idle") {
@@ -391,7 +454,7 @@ export default function FlappyDuck({ onGameOver, onOpenLeaderboard }: { onGameOv
         </div>
       )}
 
-      {state === "dead" && (
+      {state === "dead" && !quiz && (
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center">
           <div className="bg-destructive border-4 border-foreground pixel-shadow px-5 py-3">
             <p className="pixel-text text-[14px] text-destructive-foreground">GAME OVER</p>
@@ -406,6 +469,35 @@ export default function FlappyDuck({ onGameOver, onOpenLeaderboard }: { onGameOv
           <div className="bg-primary border-4 border-foreground pixel-shadow px-4 py-3 animate-pulse">
             <p className="pixel-text text-[10px] text-primary-foreground">TAP TO RETRY</p>
           </div>
+        </div>
+      )}
+
+      {quiz && (
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center bg-foreground/70"
+          onMouseDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="bg-destructive border-4 border-foreground pixel-shadow px-4 py-2">
+            <p className="pixel-text text-[10px] text-destructive-foreground">REVIVE QUIZ · {quizTime}s</p>
+          </div>
+          <div className="bg-card border-4 border-foreground pixel-shadow px-5 py-4">
+            <p className="pixel-text text-[20px] text-foreground">{quiz.a} × {quiz.b} = ?</p>
+          </div>
+          <div className="flex flex-col gap-2 w-full max-w-[240px]">
+            {quiz.options.map((opt) => (
+              <button
+                key={opt}
+                type="button"
+                onClick={(e) => { e.stopPropagation(); answerQuiz(opt); }}
+                className="bg-primary border-4 border-foreground pixel-shadow pixel-text text-[14px] text-primary-foreground py-3 hover:opacity-90"
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+          <p className="pixel-text text-[8px] text-background">CORRECT = REVIVE!</p>
         </div>
       )}
     </div>
