@@ -114,6 +114,7 @@ export default function FlappyDuck({ onGameOver, onOpenLeaderboard }: { onGameOv
   }, []);
 
   const flap = useCallback(() => {
+    if (quizRef.current) return;
     if (stateRef.current === "idle") {
       reset();
       stateRef.current = "playing";
