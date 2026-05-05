@@ -36,6 +36,67 @@ export default function FlappyDuck({ onGameOver, onOpenLeaderboard }: { onGameOv
   const tiltRef = useRef(0);
   const groundOffRef = useRef(0);
   const frameRef = useRef(0);
+  const finalScoreRef = useRef(0);
+
+  type Quiz = { a: number; b: number; options: number[]; correct: number };
+  const [quiz, setQuiz] = useState<Quiz | null>(null);
+  const [quizTime, setQuizTime] = useState(10);
+  const quizRef = useRef<Quiz | null>(null);
+  useEffect(() => { quizRef.current = quiz; }, [quiz]);
+
+  const startQuiz = useCallback(() => {
+    const a = 1 + Math.floor(Math.random() * 12);
+    const b = 1 + Math.floor(Math.random() * 12);
+    const correct = a * b;
+    const opts = new Set<number>([correct]);
+    while (opts.size < 3) {
+      const delta = (Math.floor(Math.random() * 9) + 1) * (Math.random() < 0.5 ? -1 : 1);
+      const w = correct + delta;
+      if (w > 0) opts.add(w);
+    }
+    const options = Array.from(opts).sort(() => Math.random() - 0.5);
+    setQuiz({ a, b, options, correct });
+    setQuizTime(10);
+  }, []);
+
+  const failQuiz = useCallback(() => {
+    setQuiz(null);
+    onGameOverRef.current?.(finalScoreRef.current);
+    force((n) => n + 1);
+  }, []);
+
+  const reviveFromQuiz = useCallback(() => {
+    setQuiz(null);
+    yRef.current = H / 2;
+    vRef.current = 0;
+    pipesRef.current = [];
+    lastSpawnRef.current = 0;
+    tiltRef.current = 0;
+    stateRef.current = "playing";
+    force((n) => n + 1);
+  }, []);
+
+  const answerQuiz = useCallback((value: number) => {
+    const q = quizRef.current;
+    if (!q) return;
+    if (value === q.correct) reviveFromQuiz();
+    else failQuiz();
+  }, [reviveFromQuiz, failQuiz]);
+
+  useEffect(() => {
+    if (!quiz) return;
+    const id = window.setInterval(() => {
+      setQuizTime((t) => {
+        if (t <= 1) {
+          window.clearInterval(id);
+          failQuiz();
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [quiz, failQuiz]);
 
   useEffect(() => {
     const v = parseInt(localStorage.getItem(HS_KEY) || "0", 10);
