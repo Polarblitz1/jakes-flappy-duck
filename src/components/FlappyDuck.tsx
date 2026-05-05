@@ -325,6 +325,7 @@ export default function FlappyDuck({ onGameOver, onOpenLeaderboard }: { onGameOv
         if (collide()) {
           stateRef.current = "dead";
           const final = scoreRef.current;
+          finalScoreRef.current = final;
           setHs((prev) => {
             if (final > prev) {
               localStorage.setItem(HS_KEY, String(final));
@@ -332,7 +333,7 @@ export default function FlappyDuck({ onGameOver, onOpenLeaderboard }: { onGameOv
             }
             return prev;
           });
-          onGameOverRef.current?.(final);
+          startQuiz();
           force((n) => n + 1);
         }
       } else if (stateRef.current === "idle") {
