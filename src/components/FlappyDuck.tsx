@@ -133,7 +133,7 @@ export default function FlappyDuck({ onGameOver, onOpenLeaderboard }: { onGameOv
   }, []);
 
   const flap = useCallback(() => {
-    if (quizRef.current) return;
+    if (quizRef.current || freezeRef.current) return;
     if (stateRef.current === "idle") {
       reset();
       stateRef.current = "playing";
@@ -318,7 +318,7 @@ export default function FlappyDuck({ onGameOver, onOpenLeaderboard }: { onGameOv
       const scale = dt / 16.667;
       frameRef.current += scale;
 
-      if (stateRef.current === "playing") {
+      if (stateRef.current === "playing" && !freezeRef.current) {
         groundOffRef.current += PIPE_SPEED * scale;
         vRef.current += GRAVITY * scale;
         yRef.current += vRef.current * scale;
