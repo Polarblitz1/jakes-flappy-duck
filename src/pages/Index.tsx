@@ -8,6 +8,17 @@ import { Trophy, X } from "lucide-react";
 const HS_KEY = "jakes_flappy_duck_hs";
 const NAME_KEY = "jakes_flappy_duck_name";
 
+// Simple profanity filter — replaces matches with ###
+const BAD_WORDS = [
+  "damn","hell","crap","stupid","idiot","moron","dumb","loser","suck","fuck","shit","bitch","ass","bastard","dick","piss","slut","whore","cock","cunt","retard","fag","nigga","nigger","chink","spic","kike","wetback","raghead","towelhead","honky","cracker","gook","kyke","coon","dyke","tranny",
+];
+const PROFANITY_RE = new RegExp(
+  BAD_WORDS.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"),
+  "gi"
+);
+const filterProfanity = (text: string) =>
+  text.replace(PROFANITY_RE, (m) => "#".repeat(m.length));
+
 const Index = () => {
   const [hs, setHs] = useState(0);
   const [pendingScore, setPendingScore] = useState<number | null>(null);
