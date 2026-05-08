@@ -43,7 +43,8 @@ const Index = () => {
   }, []);
 
   const submitScore = async () => {
-    const trimmed = name.trim().toUpperCase().slice(0, 12);
+    let trimmed = name.trim().toUpperCase().slice(0, 12);
+    trimmed = filterProfanity(trimmed);
     if (!trimmed) {
       toast.error("Enter a name first!");
       return;
