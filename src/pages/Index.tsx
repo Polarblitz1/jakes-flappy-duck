@@ -124,7 +124,7 @@ const Index = () => {
             <input
               autoFocus
               value={name}
-              onChange={(e) => setName(e.target.value.toUpperCase().slice(0, 12))}
+              onChange={(e) => setName(filterProfanity(e.target.value.toUpperCase().slice(0, 12)))}
               maxLength={12}
               placeholder="DUCK"
               className="pixel-text text-[12px] bg-background text-foreground border-4 border-foreground px-3 py-2 outline-none uppercase"
