@@ -349,7 +349,7 @@ export default function FlappyDuck({ onGameOver, onOpenLeaderboard }: { onGameOv
         yRef.current = H / 2 + Math.sin(frameRef.current * 0.08) * 8;
         tiltRef.current = 0;
       } else {
-        if (yRef.current + DUCK_R < H - GROUND_H) {
+        if (!quizRef.current && yRef.current + DUCK_R < H - GROUND_H) {
           vRef.current += GRAVITY * scale;
           yRef.current += vRef.current * scale;
           tiltRef.current = Math.min(1.4, tiltRef.current + 0.05 * scale);
