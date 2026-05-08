@@ -8,6 +8,17 @@ import { Trophy, X } from "lucide-react";
 const HS_KEY = "jakes_flappy_duck_hs";
 const NAME_KEY = "jakes_flappy_duck_name";
 
+// Simple profanity filter — replaces matches with ###
+const BAD_WORDS = [
+  "damn","hell","crap","stupid","idiot","moron","dumb","loser","suck","fuck","shit","bitch","ass","bastard","dick","piss","slut","whore","cock","cunt","retard","fag","nigga","nigger","chink","spic","kike","wetback","raghead","towelhead","honky","cracker","gook","kyke","coon","dyke","tranny",
+];
+const PROFANITY_RE = new RegExp(
+  BAD_WORDS.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"),
+  "gi"
+);
+const filterProfanity = (text: string) =>
+  text.replace(PROFANITY_RE, (m) => "#".repeat(m.length));
+
 const Index = () => {
   const [hs, setHs] = useState(0);
   const [pendingScore, setPendingScore] = useState<number | null>(null);
@@ -32,7 +43,8 @@ const Index = () => {
   }, []);
 
   const submitScore = async () => {
-    const trimmed = name.trim().toUpperCase().slice(0, 12);
+    let trimmed = name.trim().toUpperCase().slice(0, 12);
+    trimmed = filterProfanity(trimmed);
     if (!trimmed) {
       toast.error("Enter a name first!");
       return;
@@ -112,7 +124,7 @@ const Index = () => {
             <input
               autoFocus
               value={name}
-              onChange={(e) => setName(e.target.value.toUpperCase().slice(0, 12))}
+              onChange={(e) => setName(filterProfanity(e.target.value.toUpperCase().slice(0, 12)))}
               maxLength={12}
               placeholder="DUCK"
               className="pixel-text text-[12px] bg-background text-foreground border-4 border-foreground px-3 py-2 outline-none uppercase"
